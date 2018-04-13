@@ -1,5 +1,5 @@
 #!/bin/bash
-# OpenVPN or Debian, Ubuntu and CentOS
+# OpenVPN installer for Debian, Ubuntu and CentOS
 
 # This script will work on Debian, Ubuntu, CentOS and probably other distros
 # of the same families, although no support is offered for them. It isn't
@@ -25,8 +25,8 @@ You need to enable TUN before running this script"
 	exit 3
 fi
 
-if grep -qs "CentOS release 7" "/etc/redhat-release"; then
-	echo "CentOS 7 is too old and not supported"
+if grep -qs "CentOS release 5" "/etc/redhat-release"; then
+	echo "CentOS 5 is too old and not supported"
 	exit 4
 fi
 if [[ -e /etc/debian_version ]]; then
@@ -67,7 +67,7 @@ if [[ "$IP" = "" ]]; then
 		IP=$(wget -4qO- "http://whatismyip.akamai.com/")
 fi
 
-if [[ -e /etc/openvpn/server.pta-bandarlampung.go.id.conf ]]; then
+if [[ -e /etc/openvpn/server.conf ]]; then
 	while :
 	do
 	clear
@@ -129,8 +129,8 @@ if [[ -e /etc/openvpn/server.pta-bandarlampung.go.id.conf ]]; then
 			echo ""
 			read -p "Do you really want to remove OpenVPN? [y/n]: " -e -i n REMOVE
 			if [[ "$REMOVE" = 'y' ]]; then
-				PORT=$(grep '^port ' /etc/openvpn/server.pta-bandarlampung.go.id.conf | cut -d " " -f 2)
-				PROTOCOL=$(grep '^proto ' /etc/openvpn/server.pta-bandarlampung.go.id.conf | cut -d " " -f 2)
+				PORT=$(grep '^port ' /etc/openvpn/server.conf | cut -d " " -f 2)
+				PROTOCOL=$(grep '^proto ' /etc/openvpn/server.conf | cut -d " " -f 2)
 				if pgrep firewalld; then
 					IP=$(firewall-cmd --direct --get-rules ipv4 nat POSTROUTING | grep '\-s 10.10.0.0/24 '"'"'!'"'"' -d 10.10.0.0/24 -j SNAT --to ' | cut -d " " -f 10)
 					# Using both permanent and not permanent rules to avoid a firewalld reload.
@@ -155,7 +155,7 @@ if [[ -e /etc/openvpn/server.pta-bandarlampung.go.id.conf ]]; then
 				fi
 				if hash sestatus 2>/dev/null; then
 					if sestatus | grep "Current mode" | grep -qs "enforcing"; then
-						if [[ "$PORT" != '1111' || "$PROTOCOL" = 'tcp' ]]; then
+						if [[ "$PORT" != '1194' || "$PROTOCOL" = 'tcp' ]]; then
 							semanage port -d -t openvpn_port_t -p $PROTOCOL $PORT
 						fi
 					fi
@@ -179,7 +179,7 @@ if [[ -e /etc/openvpn/server.pta-bandarlampung.go.id.conf ]]; then
 	done
 else
 	clear
-	echo 'Welcome to this quick OpenVPN "road warrior" installer'
+	echo 'Welcome to this quick OpenVPN "Pengadilan Tinggi Agama Bandar Lampung" installer'
 	echo ""
 	# OpenVPN setup and first user creation
 	echo "I need to ask you a few questions before starting the setup"
@@ -203,7 +203,7 @@ else
 	esac
 	echo ""
 	echo "What port do you want OpenVPN listening to?"
-	read -p "Port: " -e -i 1111 PORT
+	read -p "Port: " -e -i 1194 PORT
 	echo ""
 	echo "Which DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
@@ -217,7 +217,7 @@ else
 	echo "Please, use one word only, no special characters"
 	read -p "Client name: " -e -i client CLIENT
 	echo ""
-	echo "Okay, that was all I needed. We are ready to setup your OpenVPN server.pta-bandarlampung.go.id now"
+	echo "Okay, that was all I needed. We are ready to setup your OpenVPN server now"
 	read -n1 -r -p "Press any key to continue..."
 	if [[ "$OS" = 'debian' ]]; then
 		apt-get update
@@ -232,42 +232,42 @@ else
 		rm -rf /etc/openvpn/easy-rsa/
 	fi
 	# Get easy-rsa
-	wget -O ~/EasyRSA-3.0.5.tgz "https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.5/EasyRSA-3.0.5.tgz"
-	tar xzf ~/EasyRSA-3.0.5.tgz -C ~/
-	mv ~/EasyRSA-3.0.5/ /etc/openvpn/
-	mv /etc/openvpn/EasyRSA-3.0.5/ /etc/openvpn/easy-rsa/
+	wget -O ~/EasyRSA-3.0.4.tgz "https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.4/EasyRSA-3.0.4.tgz"
+	tar xzf ~/EasyRSA-3.0.4.tgz -C ~/
+	mv ~/EasyRSA-3.0.4/ /etc/openvpn/
+	mv /etc/openvpn/EasyRSA-3.0.4/ /etc/openvpn/easy-rsa/
 	chown -R root:root /etc/openvpn/easy-rsa/
-	rm -rf ~/EasyRSA-3.0.5.tgz
+	rm -rf ~/EasyRSA-3.0.4.tgz
 	cd /etc/openvpn/easy-rsa/
-	# Create the PKI, set up the CA, the DH params and the server.pta-bandarlampung.go.id + client certificates
+	# Create the PKI, set up the CA, the DH params and the server + client certificates
 	./easyrsa init-pki
 	./easyrsa --batch build-ca nopass
 	./easyrsa gen-dh
-	./easyrsa build-server.pta-bandarlampung.go.id-full server.pta-bandarlampung.go.id nopass
+	./easyrsa build-server-full server nopass
 	./easyrsa build-client-full $CLIENT nopass
 	EASYRSA_CRL_DAYS=3650 ./easyrsa gen-crl
 	# Move the stuff we need
-	cp pki/ca.crt pki/private/ca.key pki/dh.pem pki/issued/server.pta-bandarlampung.go.id.crt pki/private/server.pta-bandarlampung.go.id.key pki/crl.pem /etc/openvpn
+	cp pki/ca.crt pki/private/ca.key pki/dh.pem pki/issued/server.crt pki/private/server.key pki/crl.pem /etc/openvpn
 	# CRL is read with each client connection, when OpenVPN is dropped to nobody
 	chown nobody:$GROUPNAME /etc/openvpn/crl.pem
 	# Generate key for tls-auth
 	openvpn --genkey --secret /etc/openvpn/ta.key
-	# Generate server.pta-bandarlampung.go.id.conf
+	# Generate server.conf
 	echo "port $PORT
 proto $PROTOCOL
 dev tun
 sndbuf 0
 rcvbuf 0
 ca ca.crt
-cert server.pta-bandarlampung.go.id.crt
-key server.pta-bandarlampung.go.id.key
+cert server.crt
+key server.key
 dh dh.pem
 auth SHA512
 tls-auth ta.key 0
 topology subnet
-server.pta-bandarlampung.go.id 10.10.0.0 255.255.255.0
-ifconfig-pool-persist ipp.txt" > /etc/openvpn/server.pta-bandarlampung.go.id.conf
-	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
+server 10.10.0.0 255.255.255.0
+ifconfig-pool-persist ipp.txt" > /etc/openvpn/server.conf
+	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.conf
 	# DNS
 	case $DNS in
 		1)
@@ -280,24 +280,24 @@ ifconfig-pool-persist ipp.txt" > /etc/openvpn/server.pta-bandarlampung.go.id.con
 		fi
 		# Obtain the resolvers from resolv.conf and use them for OpenVPN
 		grep -v '#' $RESOLVCONF | grep 'nameserver' | grep -E -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | while read line; do
-			echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
+			echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/server.conf
 		done
 		;;
 		2)
-		echo 'push "dhcp-option DNS 1.1.1.1"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
-		echo 'push "dhcp-option DNS 1.0.0.1"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
+		echo 'push "dhcp-option DNS 1.1.1.1"' >> /etc/openvpn/server.conf
+		echo 'push "dhcp-option DNS 1.0.0.1"' >> /etc/openvpn/server.conf
 		;;
 		3)
-		echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
-		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
+		echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/server.conf
+		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/server.conf
 		;;
 		4)
-		echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
-		echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
+		echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/server.conf
+		echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/server.conf
 		;;
 		5)
-		echo 'push "dhcp-option DNS 64.6.64.6"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
-		echo 'push "dhcp-option DNS 64.6.65.6"' >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
+		echo 'push "dhcp-option DNS 64.6.64.6"' >> /etc/openvpn/server.conf
+		echo 'push "dhcp-option DNS 64.6.65.6"' >> /etc/openvpn/server.conf
 		;;
 	esac
 	echo "keepalive 10 120
@@ -309,7 +309,7 @@ persist-key
 persist-tun
 status openvpn-status.log
 verb 3
-crl-verify crl.pem" >> /etc/openvpn/server.pta-bandarlampung.go.id.conf
+crl-verify crl.pem" >> /etc/openvpn/server.conf
 	# Enable net.ipv4.ip_forward for the system
 	sed -i '/\<net.ipv4.ip_forward\>/c\net.ipv4.ip_forward=1' /etc/sysctl.conf
 	if ! grep -q "\<net.ipv4.ip_forward\>" /etc/sysctl.conf; then
@@ -354,7 +354,7 @@ exit 0' > $RCLOCAL
 	# If SELinux is enabled and a custom port or TCP was selected, we need this
 	if hash sestatus 2>/dev/null; then
 		if sestatus | grep "Current mode" | grep -qs "enforcing"; then
-			if [[ "$PORT" != '1111' || "$PROTOCOL" = 'tcp' ]]; then
+			if [[ "$PORT" != '1194' || "$PROTOCOL" = 'tcp' ]]; then
 				# semanage isn't available in CentOS 6 by default
 				if ! hash semanage 2>/dev/null; then
 					yum install policycoreutils-python -y
@@ -367,14 +367,14 @@ exit 0' > $RCLOCAL
 	if [[ "$OS" = 'debian' ]]; then
 		# Little hack to check for systemd
 		if pgrep systemd-journal; then
-			systemctl restart openvpn@server.pta-bandarlampung.go.id.service
+			systemctl restart openvpn@server.service
 		else
 			/etc/init.d/openvpn restart
 		fi
 	else
 		if pgrep systemd-journal; then
-			systemctl restart openvpn@server.pta-bandarlampung.go.id.service
-			systemctl enable openvpn@server.pta-bandarlampung.go.id.service
+			systemctl restart openvpn@server.service
+			systemctl enable openvpn@server.service
 		else
 			service openvpn restart
 			chkconfig openvpn on
@@ -384,9 +384,9 @@ exit 0' > $RCLOCAL
 	EXTERNALIP=$(wget -4qO- "http://whatismyip.akamai.com/")
 	if [[ "$IP" != "$EXTERNALIP" ]]; then
 		echo ""
-		echo "Looks like your server.pta-bandarlampung.go.id is behind a NAT!"
+		echo "Looks like your server is behind a NAT!"
 		echo ""
-		echo "If your server.pta-bandarlampung.go.id is NATed (e.g. LowEndSpirit), I need to know the external IP"
+		echo "If your server is NATed (e.g. LowEndSpirit), I need to know the external IP"
 		echo "If that's not the case, just ignore this and leave the next field blank"
 		read -p "External IP: " -e USEREXTERNALIP
 		if [[ "$USEREXTERNALIP" != "" ]]; then
@@ -404,7 +404,7 @@ resolv-retry infinite
 nobind
 persist-key
 persist-tun
-remote-cert-tls server.pta-bandarlampung.go.id
+remote-cert-tls server
 auth SHA512
 cipher AES-256-CBC
 comp-lzo
